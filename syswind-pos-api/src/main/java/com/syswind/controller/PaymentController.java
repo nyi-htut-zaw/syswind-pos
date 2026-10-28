@@ -38,7 +38,7 @@ public class PaymentController {
         if (currentUser != null && currentUser.getOrganization() != null) {
             list = paymentMethodRepository.findByOrganizationOrGlobal(currentUser.getOrganization().getId());
         } else {
-            list = paymentMethodRepository.findAllByOrderBySortOrderAscNameAsc();
+            list = paymentMethodRepository.findAllByIsActiveTrueOrderBySortOrderAscNameAsc();
         }
 
         resp.put("success", true);

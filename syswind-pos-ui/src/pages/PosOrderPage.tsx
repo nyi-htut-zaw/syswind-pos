@@ -70,12 +70,17 @@ export const PosOrderPage: React.FC<PosOrderPageProps> = ({ onOrderCreated }) =>
       if (townRes.townships && townRes.townships.length > 0) {
         setSelectedTownship(townRes.townships[0]);
       }
-      const pms = pmRes?.payment_methods || [];
+      // Filter out inactive methods client-side as extra safety
+      const pms = (pmRes?.payment_methods || []).filter((p: any) => p.is_active !== false);
       setAvailableMethods(pms);
       if (pms.length > 0) {
-        const defaultMethod = pms.find((p: any) => p.type === 'COD') || pms[0];
+        // Prefer COD/CASH_ON_DELIVERY as default; fall back to first active method
+        const defaultMethod = pms.find((p: any) => p.type === 'COD' || p.type === 'CASH_ON_DELIVERY') || pms[0];
         setSelectedPmObj(defaultMethod);
-        setPaymentMethod(defaultMethod.type === 'COD' ? 'CASH_ON_DELIVERY' : defaultMethod.name);
+        // Always send type code to backend (e.g. 'CASH_ON_DELIVERY', 'KBZPAY'), NOT the display name
+        setPaymentMethod(defaultMethod.type === 'COD' || defaultMethod.type === 'CASH_ON_DELIVERY'
+          ? 'CASH_ON_DELIVERY'
+          : defaultMethod.type);
       }
     } catch (err) {
       console.error('Failed to load POS data:', err);
@@ -517,14 +522,18 @@ export const PosOrderPage: React.FC<PosOrderPageProps> = ({ onOrderCreated }) =>
                   { id: '4', name: 'AYA Pay', name_mm: 'ဧရာပေး', type: 'AYAPAY' },
                   { id: '5', name: 'CB Pay', name_mm: 'စီဘီပေး', type: 'CBPAY' },
                 ]).map((pm: any) => {
-                  const isSelected = selectedPmObj?.id === pm.id || paymentMethod === pm.name || (pm.type === 'COD' && paymentMethod === 'CASH_ON_DELIVERY');
+                  const isSelected = selectedPmObj?.id === pm.id ||
+                    (pm.type === 'COD' || pm.type === 'CASH_ON_DELIVERY' ? paymentMethod === 'CASH_ON_DELIVERY' : paymentMethod === pm.type);
                   return (
                     <button
                       key={pm.id || pm.name}
                       type="button"
                       onClick={() => {
                         setSelectedPmObj(pm);
-                        setPaymentMethod(pm.type === 'COD' ? 'CASH_ON_DELIVERY' : pm.name);
+                        // Send type code to backend, NOT the human-readable display name
+                        setPaymentMethod(pm.type === 'COD' || pm.type === 'CASH_ON_DELIVERY'
+                          ? 'CASH_ON_DELIVERY'
+                          : pm.type);
                       }}
                       className={`p-2 rounded-xl text-left border transition-all flex flex-col justify-between ${
                         isSelected
@@ -542,7 +551,7 @@ export const PosOrderPage: React.FC<PosOrderPageProps> = ({ onOrderCreated }) =>
               </div>
 
               {/* Selected Method Details Box */}
-              {selectedPmObj && selectedPmObj.type !== 'COD' && (
+              {selectedPmObj && selectedPmObj.type !== 'COD' && selectedPmObj.type !== 'CASH_ON_DELIVERY' && (
                 <div className="mt-2 p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-1 text-[11px]">
                   {selectedPmObj.account_name && (
                     <div className="flex justify-between">

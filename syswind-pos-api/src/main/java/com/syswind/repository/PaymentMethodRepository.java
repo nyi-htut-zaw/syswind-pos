@@ -11,8 +11,9 @@ import java.util.UUID;
 
 @Repository
 public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, UUID> {
-    @Query("SELECT pm FROM PaymentMethod pm WHERE pm.organization.id = :orgId OR pm.organization IS NULL ORDER BY pm.sortOrder ASC, pm.name ASC")
+    // Only return active payment methods scoped to this org or global (no org)
+    @Query("SELECT pm FROM PaymentMethod pm WHERE (pm.organization.id = :orgId OR pm.organization IS NULL) AND pm.isActive = true ORDER BY pm.sortOrder ASC, pm.name ASC")
     List<PaymentMethod> findByOrganizationOrGlobal(@Param("orgId") UUID orgId);
 
-    List<PaymentMethod> findAllByOrderBySortOrderAscNameAsc();
+    List<PaymentMethod> findAllByIsActiveTrueOrderBySortOrderAscNameAsc();
 }
